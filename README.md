@@ -15,7 +15,7 @@ This project develops a data pipeline to analyze a dataset containing real messa
         `python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl`
 
 2. Run the following command in the app's directory to run your web app.
-    `python app/run.py`
+    `python run.py`
 
 3. Go to http://0.0.0.0:3001/
 
