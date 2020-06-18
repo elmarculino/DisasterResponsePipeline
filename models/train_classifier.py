@@ -1,26 +1,89 @@
 import sys
+import re
+import pickle
+import warnings
+
+import pandas as pd
+from sqlalchemy import create_engine
+
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.pipeline import Pipeline, FeatureUnion, TransformerMixin
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.metrics import classification_report
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+nltk.download(['punkt','wordnet','stopwords'])
+
+random_state = 99
 
 
 def load_data(database_filepath):
-    pass
-
-
+    '''
+    Load training data from SQLite database
+    '''
+    engine = create_engine(f'sqlite:///{database_filepath}')
+    df = pd.read_sql_table('messages', engine)
+    X = df['message'] 
+    y = df.iloc[:,4:]
+    labels = y.columns.tolist()
+    
+    return X, y, labels
+    
+    
 def tokenize(text):
-    pass
+    '''
+    Return the cleaned, lemmatized, lowercased list of tokens from the text input 
+    '''
+    lemmatizer = WordNetLemmatizer()    
+    text = re.sub(r"[^a-zA-Z]", " ", text.lower()) 
+    tokens = word_tokenize(text)
+    
+    return [lemmatizer.lemmatize(t).strip() for t in tokens if t not in stopwords.words("english")]
 
 
 def build_model():
-    pass
+    '''
+    Build an optimized machine learning model using scikit-learn Pipeline and GridSearchCV
+    '''
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('moc', MultiOutputClassifier(RandomForestClassifier(random_state=random_state)))
+    ])
+    
+    parameters = {
+        'moc__estimator__n_estimators': [ 50, 100 ],
+        'moc__estimator__max_depth': [ 3, 5 ]
+    }
+
+    return GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1)
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
-
+    '''
+    Evaluate models accuracy
+    '''
+    Y_preds = model.predict(X_test)
+    
+    print(classification_report(Y_test.values, Y_preds, target_names=category_names))
+    
 
 def save_model(model, model_filepath):
-    pass
+    '''
+    Save model into a pickle file
+    '''
+    with open(model_filepath, 'wb') as file:
+        pickle.dump(model, file)
 
-
+        
 def main():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
