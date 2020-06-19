@@ -43,7 +43,7 @@ def tokenize(text):
     Return the cleaned, lemmatized, lowercased list of tokens from the text input 
     '''
     lemmatizer = WordNetLemmatizer()    
-    text = re.sub(r"[^a-zA-Z]", " ", text.lower()) 
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
     tokens = word_tokenize(text)
     
     return [lemmatizer.lemmatize(t).strip() for t in tokens if t not in stopwords.words("english")]
